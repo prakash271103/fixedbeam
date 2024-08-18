@@ -4,6 +4,7 @@ import os
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+from ezdxf.math import ConstructionArc
 
 app = Flask(__name__)
 @app.route('/')
@@ -2214,7 +2215,7 @@ def generate_dxf():
         max_bending_moment_position = x_values[np.argmax(np.abs(moment_values))]
 
         # Plot shear force and bending moment diagrams with adjustments for multiple point loads
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+        '''fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
 
         # Shear Force Diagram
         ax1.plot(x_values, shear_values, label='Shear Force Diagram')
@@ -2246,7 +2247,7 @@ def generate_dxf():
                      arrowprops=dict(facecolor='black', shrink=0.05),
                      bbox=dict(boxstyle='round,pad=0.2', fc='yellow', alpha=0.9), fontsize=10)
         plt.tight_layout()
-        plt.show()
+        plt.show()'''
         max_bending_moment = max_bending_moment
         print("Maximum bending moment:", max_bending_moment, "kN/m")
         ultimate_bending_moment = 1.5 * max_bending_moment
@@ -2676,14 +2677,67 @@ def generate_dxf():
         msp.add_line((wall_thickness, -4 * overall_depth), (wall_thickness, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover / 100
-        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (0 + nominal_cover, -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((0 + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))
+        msp.add_line((0 + nominal_cover+main_bar/100, -5 * overall_depth + nominal_cover),
+                     (wall_thickness - nominal_cover-main_bar/100, -5 * overall_depth + nominal_cover))  # bottom line
+        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100),
+                     (0 + nominal_cover, -4 * overall_depth - nominal_cover-top_bar/100))  # left line
+        msp.add_line((0 + nominal_cover+top_bar/100, -4 * overall_depth - nominal_cover),
+                     (wall_thickness - nominal_cover-top_bar/100, -4 * overall_depth - nominal_cover))
+        msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover-top_bar/100),
+                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100))
+        #hook a-a----------------------------------
+        attribs = {'layer': '0', 'color': 7}
+#bottom -left-----------------
+        startleft_point = (nominal_cover , -5 * overall_depth + nominal_cover+main_bar/100)
+        endleft_point = (nominal_cover+main_bar/100, -5 * overall_depth + nominal_cover )
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+            wall_thickness - nominal_cover-main_bar/100, -5 * overall_depth + nominal_cover )
+        endleft_point = (
+             wall_thickness - nominal_cover , -5 * overall_depth + nominal_cover+main_bar/100)
+        # bottom right
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        # top right-------------------------------------
+        endleft_point1 =  (wall_thickness- nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point1 = (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=top_bar/100  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        # top-left-----------------------------------------------------
+        endleft_point2 = (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar / 100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        # hook---------------------------------------
+        msp.add_line((  nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (nominal_cover + top_bar / 100 + 2 * top_bar / 100,-4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+        msp.add_line((  nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (nominal_cover + 2 * top_bar / 100,-4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+        # hook-fillet
+        startleft_point3 = (nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3 = (nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar / 100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
+
         ml_builder = msp.add_multileader_mtext("Standard")
 
         ct = "Provide", no_of_bars_bottom, "Φ", main_bar, "- mm as \n main bars at the bottom"
@@ -2930,16 +2984,78 @@ def generate_dxf():
         msp.add_line((500 * clear_span, -4 * overall_depth), (500 * clear_span, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover
-        msp.add_line((500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover),
-                     (500 * clear_span - wall_thickness + nominal_cover,
+        msp.add_line((500 * clear_span - nominal_cover-main_bar/100, -5 * overall_depth + nominal_cover),
+                     (500 * clear_span - wall_thickness + nominal_cover+main_bar/100,
                       -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover),
+        msp.add_line((500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100),
                      (500 * clear_span - wall_thickness + nominal_cover,
-                      -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+                      -4 * overall_depth - nominal_cover-top_bar/100))  # left line
+        msp.add_line((500 * clear_span - wall_thickness + nominal_cover+top_bar/100, -4 * overall_depth - nominal_cover),
+                     (500 * clear_span - nominal_cover-top_bar/100, -4 * overall_depth - nominal_cover))
+        msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover-top_bar/100),
+                     (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100))
+        #hook b-b
+        attribs = {'layer': '0', 'color': 7}
+
+        startleft_point = (
+        500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+        500 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        # bottom left
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        # bottom right-------------------------------------
+        endleft_point1 = (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        startleft_point1 = (500 * clear_span - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        # top-left-----------------------------------------------------
+        endleft_point2 = (500 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar / 100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        # hook---------------------------------------
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+            500 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+            -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+            500 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+            -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+        # hook-fillet
+        startleft_point3 = (
+        500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3 = (
+        500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar / 100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
 
         # cross section dimension
         dim3 = msp.add_linear_dim(
@@ -3071,7 +3187,7 @@ def generate_dxf():
                 'color': 7
             }
         )
-        # section b-b
+        # section c-c
         msp.add_line((1000 * clear_span, -5 * overall_depth),
                      (1000 * clear_span - wall_thickness, -5 * overall_depth))  # bottom line
         msp.add_line((1000 * clear_span - wall_thickness, -5 * overall_depth),
@@ -3080,16 +3196,72 @@ def generate_dxf():
         msp.add_line((1000 * clear_span, -4 * overall_depth), (1000 * clear_span, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover
-        msp.add_line((1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover),
-                     (1000 * clear_span - wall_thickness + nominal_cover,
+        msp.add_line((1000 * clear_span - nominal_cover-main_bar/100, -5 * overall_depth + nominal_cover),
+                     (1000 * clear_span - wall_thickness + nominal_cover+main_bar/100,
                       -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (1000 * clear_span - wall_thickness + nominal_cover,
-                      -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100),
+            (1000 * clear_span - wall_thickness + nominal_cover,
+             -4 * overall_depth - nominal_cover - top_bar / 100))  # left line
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+            (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover))
+        msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover-top_bar/100),
+                     (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100))#right line
+
+        attribs = {'layer': '0', 'color': 7}
+
+        startleft_point=( 1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100 )
+        endleft_point=(  1000 * clear_span - wall_thickness + nominal_cover +main_bar/100, -5 * overall_depth + nominal_cover)
+        arc2=ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar/100+main_bar/400  # left fillet
+         )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+        1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+        1000 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        #bottom left
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        #bottom right-------------------------------------
+        endleft_point1 =(1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover+main_bar/100)
+        startleft_point1=(1000 * clear_span - nominal_cover-main_bar/100,-5 * overall_depth + nominal_cover)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        #top-left-----------------------------------------------------
+        endleft_point2 = (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover-top_bar/100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar/100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        #hook---------------------------------------
+        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),(1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100+2*top_bar/100,-4 * overall_depth - nominal_cover-2*top_bar/100))
+        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),(1000 * clear_span - wall_thickness + nominal_cover+2*top_bar/100, -4 * overall_depth - nominal_cover - top_bar / 100-2*top_bar/100))
+        #hook-fillet
+        startleft_point3 =(1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3= (1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar/100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
+
+
 
         # cross section dimension
         dim3 = msp.add_linear_dim(
@@ -3446,6 +3618,25 @@ def generate_dxf():
                     create_dots(dot_centers1, dot_radius1, bottom)
                 else:
                     print("bars cannot be arranged")
+        xe = -wall_thickness + nominal_cover
+        ye = overall_depth - nominal_cover * 2
+        x1e = clear_span * 200 + 50 * top_bar_provided / 100
+        y1e = overall_depth - nominal_cover * 2
+        x3e = clear_span * 1000 + wall_thickness - nominal_cover
+
+        y3e = o_d / 100 - nominal_cover * 2
+        x4e = clear_span * 800 - 50 * top_bar_provided / 100
+        y4e = o_d / 100 - nominal_cover * 2
+
+        # Create a Line
+        msp.add_line((xe, o_d / 100 - nominal_cover * 2), (x1e, o_d / 100 - nominal_cover * 2))  # top bar
+        msp.add_line((x1e, o_d / 100 - nominal_cover * 2), (x1e + nominal_cover, o_d / 100 - nominal_cover * 4))
+        msp.add_line((x3e, y3e), (x4e, y4e))  # top left
+        msp.add_line((x4e - nominal_cover, o_d / 100 - nominal_cover * 4), (x4e, y4e))
+        msp.add_line((clear_span * 250 + 50 * main_bar_provided / 100, 2 * nominal_cover),
+                     (clear_span * 750 - 50 * main_bar_provided / 100, 2 * nominal_cover))  # bottom extra
+        msp.add_line((clear_span * 250 +50* main_bar_provided / 100, 2 * nominal_cover),(clear_span * 250 + 50*main_bar_provided / 100 + nominal_cover, 4 * nominal_cover))  # bottom right extra
+        msp.add_line((clear_span * 750 - main_bar_provided / 2, 2 * nominal_cover),(clear_span * 750 - main_bar_provided / 2 - nominal_cover, 4 * nominal_cover))#bottom left
         dim.render()
         file = "SimplySupported.dxf"
         doc.saveas(file)
@@ -4035,14 +4226,69 @@ def generate_dxf():
         msp.add_line((wall_thickness, -4 * overall_depth), (wall_thickness, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover / 100
-        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (0 + nominal_cover, -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((0 + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))
+        msp.add_line((0 + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover),
+                     (wall_thickness - nominal_cover - main_bar / 100,
+                      -5 * overall_depth + nominal_cover))  # bottom line
+        msp.add_line((0 + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100),
+                     (0 + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100))  # left line
+        msp.add_line((0 + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+                     (wall_thickness - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover))
+        msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
+                     (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100))
+        # hook a-a----------------------------------
+        attribs = {'layer': '0', 'color': 7}
+        # bottom -left-----------------
+        startleft_point = (nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+            wall_thickness - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover)
+        endleft_point = (
+            wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        # bottom right
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        # top right-------------------------------------
+        endleft_point1 = (wall_thickness - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point1 = (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=top_bar / 100  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        # top-left-----------------------------------------------------
+        endleft_point2 = (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar / 100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        # hook---------------------------------------
+        msp.add_line((nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+        nominal_cover + top_bar / 100 + 2 * top_bar / 100, -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+        msp.add_line((nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+        nominal_cover + 2 * top_bar / 100, -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+        # hook-fillet
+        startleft_point3 = (nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3 = (nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar / 100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
         ml_builder = msp.add_multileader_mtext("Standard")
 
         ct = "Provide", no_of_bars_bottom, "Φ", main_bar, "- mm as \n main bars at the bottom"
@@ -4289,16 +4535,80 @@ def generate_dxf():
         msp.add_line((500 * clear_span, -4 * overall_depth), (500 * clear_span, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover
-        msp.add_line((500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover),
-                     (500 * clear_span - wall_thickness + nominal_cover,
+        msp.add_line((500 * clear_span - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover),
+                     (500 * clear_span - wall_thickness + nominal_cover + main_bar / 100,
                       -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (500 * clear_span - wall_thickness + nominal_cover,
-                      -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100),
+            (500 * clear_span - wall_thickness + nominal_cover,
+             -4 * overall_depth - nominal_cover - top_bar / 100))  # left line
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+            (500 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover))
+        msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
+                     (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100))
+        # hook b-b
+        attribs = {'layer': '0', 'color': 7}
+
+        startleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+            500 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        # bottom left
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        # bottom right-------------------------------------
+        endleft_point1 = (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        startleft_point1 = (500 * clear_span - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        # top-left-----------------------------------------------------
+        endleft_point2 = (500 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar / 100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        # hook---------------------------------------
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+                500 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+        msp.add_line(
+            (500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+                500 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+                -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+        # hook-fillet
+        startleft_point3 = (
+            500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3 = (
+            500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar / 100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
 
         # cross section dimension
         dim3 = msp.add_linear_dim(
@@ -4439,17 +4749,81 @@ def generate_dxf():
         msp.add_line((1000 * clear_span, -4 * overall_depth), (1000 * clear_span, -5 * overall_depth))
         # --stirrup cross
         nominal_cover = nominal_cover
-        msp.add_line((1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover),
-                     (1000 * clear_span - wall_thickness + nominal_cover,
+        msp.add_line((1000 * clear_span - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover),
+                     (1000 * clear_span - wall_thickness + nominal_cover + main_bar / 100,
                       -5 * overall_depth + nominal_cover))  # bottom line
-        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover),
-                     (1000 * clear_span - wall_thickness + nominal_cover,
-                      -4 * overall_depth - nominal_cover))  # left line
-        msp.add_line((1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover),
-                     (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
-        msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
-                     (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
-          # bottom bar
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100),
+            (1000 * clear_span - wall_thickness + nominal_cover,
+             -4 * overall_depth - nominal_cover - top_bar / 100))  # left line
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+            (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover))
+        msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
+                     (1000 * clear_span - nominal_cover,
+                      -5 * overall_depth + nominal_cover + main_bar / 100))  # right line
+
+        attribs = {'layer': '0', 'color': 7}
+
+        startleft_point = (
+        1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+        1000 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        startleft_point = (
+            1000 * clear_span - wall_thickness + nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        endleft_point = (
+            1000 * clear_span - wall_thickness + nominal_cover + main_bar / 100, -5 * overall_depth + nominal_cover)
+        # bottom left
+        arc2 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point,
+            end_point=endleft_point,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc2.add_to_layout(msp, dxfattribs=attribs)
+        # bottom right-------------------------------------
+        endleft_point1 = (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover + main_bar / 100)
+        startleft_point1 = (1000 * clear_span - nominal_cover - main_bar / 100, -5 * overall_depth + nominal_cover)
+        arc3 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point1,
+            end_point=endleft_point1,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arc3.add_to_layout(msp, dxfattribs=attribs)
+        # top-left-----------------------------------------------------
+        endleft_point2 = (1000 * clear_span - nominal_cover - top_bar / 100, -4 * overall_depth - nominal_cover)
+        startleft_point2 = (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc4 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point2,
+            end_point=endleft_point2,
+            radius=top_bar / 100  # left fillet
+        )
+        arc4.add_to_layout(msp, dxfattribs=attribs)
+        # hook---------------------------------------
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+            1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+            -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+        msp.add_line(
+            (1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+            1000 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+            -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+        # hook-fillet
+        startleft_point3 = (
+        1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover)
+        endleft_point3 = (
+        1000 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100)
+        arc5 = ConstructionArc.from_2p_radius(
+            start_point=startleft_point3,
+            end_point=endleft_point3,
+            radius=top_bar / 100  # left fillet
+        )
+        arc5.add_to_layout(msp, dxfattribs=attribs)
 
         # cross section dimension
         dim3 = msp.add_linear_dim(
