@@ -27,7 +27,7 @@ def generate_dxf():
         exposure = request.form['exposure']
         cd = 750
         wall_thickness = float(request.form['wall_thickness'])
-        span_d = 4
+        span_d = 5
         fck = int(request.form['fck'])
         fy = int(request.form['fy'])
         # ------------------step-1-------------geometery
@@ -213,7 +213,7 @@ def generate_dxf():
                 # pt = 100 * ab / (b * effective_depth)
                 print("percentage of steel provided(Tension Reinforcement): ", pt)
             else:
-                main_bar = [12, 16, 20, 25, 32, 40]
+                main_bar = [12, 16, 20, 25, 32, 40,50]
                 results = []
                 for num in main_bar:
                     # Calculate the result
@@ -226,6 +226,7 @@ def generate_dxf():
                     main_bar, no_of_bars_top = suitable_bars[0]  # Select the first suitable option
                 else:
                     main_bar, no_of_bars_top = (0, 0)  # Default to zero if no suitable option is found
+                    return("The Required Diameter of the bar exceeds 40mm")
 
                 # Calculate the area of steel provided and percentage
                 ab = no_of_bars_top * 0.78539816339744830961566084581988 * main_bar ** 2
@@ -362,7 +363,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section Section Fails under deflection")
             no_bars_top = no_of_bars_top
             main_bar = main_bar
             top_bar = main_bar
@@ -389,7 +390,7 @@ def generate_dxf():
             x1 = clear_span * 1000 - nominal_cover / 100
             x11 = clear_span * 100
             y1 = overall_depth - nominal_cover / 100
-            x3 = -cd + nominal_cover / 100
+            x3 = -cd + nominal_cover / 100+ld/300
             x31 = clear_span * 800
             y3 = nominal_cover / 100
             x4 = clear_span * 1000 + - nominal_cover / 100
@@ -400,8 +401,8 @@ def generate_dxf():
             y6 = overall_depth / 1.2
 
             # Create a Line
-            msp.add_line((x, y), (x1, y1))  # top bar
-            msp.add_line((x, y), (x, -ld / 100))
+            msp.add_line((x+2*top_bar/100, y), (x1, y1))  # top bar
+            msp.add_line((x, y-2*top_bar/100), (x, -ld / 100))
             msp.add_line((x3, y3), (x4, y4))  # bottom bar
             msp.add_line((0, 0), (clear_span * 1000, 0))
             msp.add_line((0, 0), (-cd, 0))
@@ -435,6 +436,23 @@ def generate_dxf():
                          (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover))
             msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover),
                          (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))
+
+            # hook---------------------------------------
+            msp.add_line((nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+            nominal_cover + top_bar / 100 + 2 * top_bar / 100, -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line((nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+            nominal_cover + 2 * top_bar / 100, -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+            attribs = {'layer': '0', 'color': 7}
+            # top -left-----------------
+            startleft_pointtl = (x + 2*top_bar / 100, y)
+            endleft_pointtl = (x, y -2*top_bar / 100)
+            arctl = ConstructionArc.from_2p_radius(
+                start_point=startleft_pointtl,
+                end_point=endleft_pointtl,
+                radius=main_bar / 50  # left fillet
+            )
+            arctl.add_to_layout(msp, dxfattribs=attribs)
+
             ml_builder = msp.add_multileader_mtext("Standard")
 
             ct = "Provide", no_of_bars_bottom, "Φ", main_bar, "- mm as \n main bars at the bottom"
@@ -494,13 +512,14 @@ def generate_dxf():
                 p1=(clear_span * 1000, 0),  # 1st measurement point
                 p2=(clear_span * 1000 + wall_thickness, 0),  # 2nd measurement point
                 dimstyle="EZDXF",  # default dimension style
-            )'''
+            )
             # hatch
             hatch = msp.add_hatch()
             hatch.set_pattern_fill("ANSI32", scale=.1)
             hatch.paths.add_polyline_path(
                 [(0, 0), (-cd, 0), (-cd, -overall_depth), (0, -overall_depth)], is_closed=True
             )
+            '''
             hatch1 = msp.add_hatch()
             hatch1.set_pattern_fill("ANSI32", scale=.1)
             hatch1.paths.add_polyline_path(
@@ -692,6 +711,18 @@ def generate_dxf():
                          (500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
             msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
                          (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+            #hook -b-b
+            msp.add_line(
+                (500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+                (
+                    500 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                    -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line(
+                (500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
+                (
+                    500 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+                    -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+
 
             # cross section dimension
             dim3 = msp.add_linear_dim(
@@ -844,6 +875,15 @@ def generate_dxf():
                          (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
             msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
                          (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+            # hook---------------------------------------
+            msp.add_line((1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100,
+                          -4 * overall_depth - nominal_cover), (
+                         1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                         -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line((1000 * clear_span - wall_thickness + nominal_cover,
+                          -4 * overall_depth - nominal_cover - top_bar / 100), (
+                         1000 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+                         -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
 
             # cross section dimension
             dim3 = msp.add_linear_dim(
@@ -964,7 +1004,7 @@ def generate_dxf():
                 sideast = 0.0005 * wall_thickness *  provided_depth
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
-                print(sideast)
+
                 # Calculate the required number of bars for each available diameter
                 for num in side_bar:
                     # Calculate the result
@@ -982,6 +1022,7 @@ def generate_dxf():
                 # Print the result
                 print("Provide", no_of_bars_side, "no of", side_bar, "mm bars on each side of the beam")
             temp1 = overall_depth / 3
+            
             if (overall_depth >= 7.5):
                 if (temp1 > no_of_bars_side):
                     if (no_of_bars_side == 2):
@@ -991,8 +1032,32 @@ def generate_dxf():
                         sx3 = -7.50 + nominal_cover
                         sy3 = nominal_cover + overall_depth / 3
                         sx4 = clear_span * 1000  - nominal_cover
-                        msp.add_line((sx, sy), (sx1, sy))  # top side bar
-                        msp.add_line((sx3, sy3), (sx4, sy3))  # bottom side bar
+                        msp.add_line((sx+ld/300+top_bar/50, sy), (sx1, sy))  # top side bar
+                        msp.add_line((sx3+ld*2/300+top_bar*2/100, sy3), (sx4, sy3))  # bottom side bar
+                        #ld for side face
+                        msp.add_line((sx3 + ld * 2 / 300, sy3-top_bar/50), (sx3+ld*2/300, sy3-ld/100-overall_depth/3))
+                        attribs = {'layer': '0', 'color': 7}
+                        # top -left-----------------
+                        startleft_pointtls =  (sx3+ld*2/300+top_bar*2/100, sy3)
+                        endleft_pointtls = (sx3 + ld/150, sy3-top_bar/50)
+                        arctls = ConstructionArc.from_2p_radius(
+                            start_point=startleft_pointtls,
+                            end_point=endleft_pointtls,
+                            radius=main_bar / 50  # left fillet
+                        )
+                        arctls.add_to_layout(msp, dxfattribs=attribs)
+                        #1st side face
+                        msp.add_line((sx + ld * 1 / 300, sy - top_bar / 50),
+                                     (sx + ld * 1 / 300, sy -ld *1/ 100 - overall_depth *2/ 3))
+                        startleft_pointtlss = (sx + ld * 1 / 300 + top_bar * 2 / 100, sy)
+                        endleft_pointtlss = (sx + ld / 300, sy - top_bar / 50)
+                        arctlss = ConstructionArc.from_2p_radius(
+                            start_point=startleft_pointtlss,
+                            end_point=endleft_pointtlss,
+                            radius=main_bar / 50  # left fillet
+                        )
+                        arctlss.add_to_layout(msp, dxfattribs=attribs)
+
 
                     elif (no_of_bars_side == 3):
                         print(no_of_bars_side)
@@ -1004,9 +1069,44 @@ def generate_dxf():
                         sx4 = clear_span * 1000 - nominal_cover
                         sy5 = nominal_cover + overall_depth * .75
                         sx5 = clear_span * 1000 - nominal_cover
-                        msp.add_line((sx, sy), (sx1, sy))  # top side bar
-                        msp.add_line((sx3, sy3), (sx4, sy3))
-                        msp.add_line((sx3, sy5), (sx5, sy5))  # bottom side bar
+                        msp.add_line((sx+ld/200+top_bar/50, sy), (sx1, sy))  # mid side bar
+                        msp.add_line((sx3+ld*3/400+top_bar/50, sy3), (sx4, sy3))#bottom
+                        msp.add_line((sx3+ld*1/400+top_bar/50, sy5), (sx5, sy5))  # top side bar
+                        # ld for side face
+                        msp.add_line((sx3 + ld * 1 / 400, sy5 - top_bar / 50),
+                                     (sx3 + ld * 1 / 400, sy5 - ld / 100 - overall_depth / 3))
+                        attribs = {'layer': '0', 'color': 7}
+                        # top -left-----------------
+                        startleft_pointtls = (sx3 + ld *1  / 400 + top_bar * 2 / 100, sy5)
+                        endleft_pointtls = (sx3 + ld*1 / 400, sy5 - top_bar / 50)
+                        arctls = ConstructionArc.from_2p_radius(
+                            start_point=startleft_pointtls,
+                            end_point=endleft_pointtls,
+                            radius=main_bar / 50  # left fillet
+                        )
+                        arctls.add_to_layout(msp, dxfattribs=attribs)
+                        # 1st side face
+                        msp.add_line((sx + ld * 2/ 400, sy - top_bar / 50),
+                                     (sx + ld * 2/ 400, sy - ld * 1 / 100 - overall_depth * 1/ 3))
+                        startleft_pointtlss = (sx + ld * 2 / 400 + top_bar * 2 / 100, sy)
+                        endleft_pointtlss = (sx + ld *2/ 400, sy - top_bar / 50)
+                        arctlss = ConstructionArc.from_2p_radius(
+                            start_point=startleft_pointtlss,
+                            end_point=endleft_pointtlss,
+                            radius=main_bar / 50  # left fillet
+                        )
+                        arctlss.add_to_layout(msp, dxfattribs=attribs)
+                        # 1st side face
+                        msp.add_line((sx + ld * 3 / 400, sy3 - top_bar / 50),
+                                     (sx + ld * 3 / 400, sy3 - ld * 1 / 100 - overall_depth * 1 / 3))
+                        startleft_pointtlsss = (sx + ld * 3 / 400 + top_bar * 2 / 100, sy3)
+                        endleft_pointtlsss = (sx + ld * 3 / 400, sy3 - top_bar / 50)
+                        arctlsss = ConstructionArc.from_2p_radius(
+                            start_point=startleft_pointtlsss,
+                            end_point=endleft_pointtlsss,
+                            radius=main_bar / 50  # left fillet
+                        )
+                        arctlsss.add_to_layout(msp, dxfattribs=attribs)
 
                     def create_dots_bb(dot_centers, dot_radius, top):
                         # Create solid dots at specified centers with given radius
@@ -1251,8 +1351,8 @@ def generate_dxf():
             astmax = .04 * b * provided_depth
             print("Maximum Ast:", astmax)
             ast=max(ast,astmin)
-            if (astmax > astmin or astmax > ast):
-                return("Revise Section")
+            if (astmax < astmin or astmax < ast):
+                return("Revise Section Tensile Reinforcement exceeds 4 %")
                 sys.exit()
             # --------------------------------------Top bars-----------------------------------------------------------------------------------------------------
             if (ast > astmin):
@@ -1405,8 +1505,8 @@ def generate_dxf():
             if (tv > tc and tv <= tcmax):
                 Vus = ultimate_shear_force * 1000 - (tc * b * effective_depth)
                 print("Vus value: ", Vus)
-                stdia = int(input("enter the diameter of the stirrup in mm: ") or 8)
-                leg = int(input("enter the number of legs for the stirrups: ") or 2)
+                stdia =  8
+                leg =2
 
                 sv = 0.87 * fy * effective_depth * leg * 0.78539816339744830961566084581988 * stdia ** 2 / Vus
                 print(sv)
@@ -1415,8 +1515,8 @@ def generate_dxf():
                 # print(max_spacing)
                 print("Provide Φ", stdia, "- mm ", leg, "vertical stirrups @", max_spacing, "c/c")
             elif (tv <= tc):
-                stdia = int(input("enter the diameter of the stirrup in mm: ") or 8)
-                leg = int(input("enter the number of legs for the stirrups: ") or 2)
+                stdia =  8
+                leg =  2
 
                 sv = 0.87 * fy * leg * 0.78539816339744830961566084581988 * stdia ** 2 / (0.4 * wall_thickness)
                 spacing = min(0.75 * effective_depth, 300)
@@ -1424,7 +1524,7 @@ def generate_dxf():
                 # print(max_spacing)
                 print("Provide Φ", stdia, "- mm ", leg, "vertical stirrups @", max_spacing, "c/c")
             else:
-                return("revise section (per Cl. 40.2.3, IS 456: 2000, pp. 72")
+                return("Revise section (per Cl. 40.2.3, IS 456: 2000, pp. 72")
             # step 6:Check for Deflection---------------------
             l = revised_effective_length
             Actualspan = l / effective_depth
@@ -1454,7 +1554,7 @@ def generate_dxf():
             # ---------------shear reinforcement--------------------
             as1 = 0.1 * wall_thickness * effective_depth / 100
             print("as1", as1)
-            x = int(input("Enter the diameter for shear reinforcement") or 10)
+            x = 10
             no_of_bars_shear_face = math.ceil((as1 / 2) / (0.785 * x))
             spacing_of_bars = provided_depth - nominal_cover * 2 - stdia * 2 - main_bar / 2 - bottom_bar_provided / 2
             no_of_bars_shear = math.ceil((spacing_of_bars / wall_thickness) - 1)
@@ -1462,7 +1562,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section ,Section Fails under Deflection")
             no_bars_top = no_of_bars_top
             top_bar = main_bar
             print("bot dia", bottom_bar)
@@ -1540,6 +1640,14 @@ def generate_dxf():
                          (wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover))
             msp.add_line((wall_thickness - nominal_cover, -4 * overall_depth - nominal_cover),
                          (wall_thickness - nominal_cover, -5 * overall_depth + nominal_cover))
+            # hook---------------------------------------
+            msp.add_line((nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover), (
+                nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line((nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100), (
+                nominal_cover + 2 * top_bar / 100,
+                -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
+
             ml_builder = msp.add_multileader_mtext("Standard")
 
             ct = "Provide", no_of_bars_bottom, "Φ", bottom_bar, "- mm as \n main bars at the bottom"
@@ -1794,6 +1902,17 @@ def generate_dxf():
             msp.add_line((500 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
                          (500 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
 
+            # hook -b-b
+            msp.add_line(
+                (500 * clear_span - wall_thickness + nominal_cover + top_bar / 100, -4 * overall_depth - nominal_cover),
+                (
+                    500 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                    -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line(
+                (500 * clear_span - wall_thickness + nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
+                (
+                    500 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+                    -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
             # cross section dimension
             dim3 = msp.add_linear_dim(
                 base=(400 * clear_span, -5.5 * overall_depth),  # location of the dimension line
@@ -1944,6 +2063,16 @@ def generate_dxf():
                          (1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover))
             msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover),
                          (1000 * clear_span - nominal_cover, -5 * overall_depth + nominal_cover))
+
+            # hook---------------------------------------
+            msp.add_line((1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100,
+                          -4 * overall_depth - nominal_cover), (
+                         1000 * clear_span - wall_thickness + nominal_cover + top_bar / 100 + 2 * top_bar / 100,
+                         -4 * overall_depth - nominal_cover - 2 * top_bar / 100))
+            msp.add_line((1000 * clear_span - wall_thickness + nominal_cover,
+                          -4 * overall_depth - nominal_cover - top_bar / 100), (
+                         1000 * clear_span - wall_thickness + nominal_cover + 2 * top_bar / 100,
+                         -4 * overall_depth - nominal_cover - top_bar / 100 - 2 * top_bar / 100))
 
             # cross section dimension
             dim3 = msp.add_linear_dim(
@@ -2446,7 +2575,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section ,Section Fails under Deflection")
 
 
 
@@ -2617,7 +2746,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section Section Fails under deflection")
         no_bars_bottom = no_of_bars_bottom
         no_bars_top = no_of_bars_top
         main_bar = main_bar
@@ -4042,7 +4171,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section ,Section Fails under deflection")
 
 
 
@@ -4213,7 +4342,7 @@ def generate_dxf():
             if (allowablespan > Actualspan):
                 print(" The section is safe under deflection")
             else:
-                return(" revise section")
+                return(" revise section Section Fails under deflection")
         no_bars_bottom = no_of_bars_bottom
         no_bars_top = no_of_bars_top
         main_bar = main_bar
@@ -4857,6 +4986,8 @@ def generate_dxf():
         msp.add_line((1000 * clear_span - nominal_cover, -4 * overall_depth - nominal_cover - top_bar / 100),
                      (1000 * clear_span - nominal_cover,
                       -5 * overall_depth + nominal_cover + main_bar / 100))  # right line
+
+
 
         attribs = {'layer': '0', 'color': 7}
 
