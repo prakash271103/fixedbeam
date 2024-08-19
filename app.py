@@ -809,7 +809,7 @@ def generate_dxf():
             else:
                 print("bars cannot be arranged")
             text_string = "SECTION C-C"
-            insert_point = (1000 * clear_span, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
+            insert_point = (1000 * clear_span-wall_thickness, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
             text_height = 1
             # Add text to the modelspace.
             msp.add_text(
@@ -1910,7 +1910,7 @@ def generate_dxf():
             else:
                 print("bars cannot be arranged")
             text_string = "SECTION C-C"
-            insert_point = (1000 * clear_span, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
+            insert_point = (1000 * clear_span-wall_thickness, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
             text_height = 1
             # Add text to the modelspace.
             msp.add_text(
@@ -2651,10 +2651,57 @@ def generate_dxf():
         y5 = overall_depth / 1.2
         x6 = clear_span * 1000 + 2 * wall_thickness / 4
         y6 = overall_depth / 1.2
-
+        # column beam ld-----------------------------------------------------------------------------------------------------------
+        msp.add_line((x, y-main_bar/100),
+                     (x,.6*overall_depth))#top left
+        msp.add_line((x3,y3+main_bar/100),(x3,y4+.4*overall_depth))#bottom left
+        msp.add_line((x1,y1-main_bar/100),(x1,.6*overall_depth))#top left
+        msp.add_line((x4,y4+main_bar/100),(x4,y4+.4*overall_depth))
+        #------------------top left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # top -left-----------------
+        startleft_pointtl =  (x+main_bar/100, y)
+        endleft_pointtl = (x, y-main_bar/100)
+        arctl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointtl,
+            end_point=endleft_pointtl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arctl.add_to_layout(msp, dxfattribs=attribs)
+        # ------------------bot left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # bot -left-----------------
+        startleft_pointbl = (x3, y3 + main_bar / 100)
+        endleft_pointbl = (x3 + main_bar / 100, y3)
+        arcbl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointbl,
+            end_point=endleft_pointbl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arcbl.add_to_layout(msp, dxfattribs=attribs)
+        # top -right-----------------
+        startleft_pointtl = (x1, y - main_bar / 100)
+        endleft_pointtl = (x1 - main_bar / 100, y)
+        arctl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointtl,
+            end_point=endleft_pointtl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arctl.add_to_layout(msp, dxfattribs=attribs)
+        # ------------------bot left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # bot -right-----------------
+        startleft_pointbl = (x4 - main_bar / 100, y3)
+        endleft_pointbl = (x4, y3 + main_bar / 100)
+        arcbl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointbl,
+            end_point=endleft_pointbl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arcbl.add_to_layout(msp, dxfattribs=attribs)
         # Create a Line
-        msp.add_line((x, y), (x1, y1))  # top bar
-        msp.add_line((x3, y3), (x4, y4))  # bottom bar
+        msp.add_line((x+main_bar/100, y), (x1-main_bar/100, y1))  # top bar
+        msp.add_line((x3+main_bar/100, y3), (x4-main_bar/100, y4))  # bottom bar
         msp.add_line((0, 0), (clear_span * 1000 + wall_thickness, 0))
         msp.add_line((0, 0), (-wall_thickness, 0))
         msp.add_line((-wall_thickness, 0), (-wall_thickness, overall_depth))
@@ -3173,7 +3220,7 @@ def generate_dxf():
         else:
             print("bars cannot be arranged")
         text_string = "SECTION C-C"
-        insert_point = (1000 * clear_span, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
+        insert_point = (1000 * clear_span-wall_thickness, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
         text_height = 1
         # Add text to the modelspace.
         msp.add_text(
@@ -3618,11 +3665,11 @@ def generate_dxf():
                     create_dots(dot_centers1, dot_radius1, bottom)
                 else:
                     print("bars cannot be arranged")
-        xe = -wall_thickness + nominal_cover
+        xe = -wall_thickness + nominal_cover + wall_thickness / 2
         ye = overall_depth - nominal_cover * 2
         x1e = clear_span * 200 + 50 * top_bar_provided / 100
         y1e = overall_depth - nominal_cover * 2
-        x3e = clear_span * 1000 + wall_thickness - nominal_cover
+        x3e = clear_span * 1000 + wall_thickness - nominal_cover - wall_thickness / 2
 
         y3e = o_d / 100 - nominal_cover * 2
         x4e = clear_span * 800 - 50 * top_bar_provided / 100
@@ -3633,10 +3680,10 @@ def generate_dxf():
         msp.add_line((x1e, o_d / 100 - nominal_cover * 2), (x1e + nominal_cover, o_d / 100 - nominal_cover * 4))
         msp.add_line((x3e, y3e), (x4e, y4e))  # top left
         msp.add_line((x4e - nominal_cover, o_d / 100 - nominal_cover * 4), (x4e, y4e))
-        msp.add_line((clear_span * 250 + 50 * main_bar_provided / 100, 2 * nominal_cover),
-                     (clear_span * 750 - 50 * main_bar_provided / 100, 2 * nominal_cover))  # bottom extra
-        msp.add_line((clear_span * 250 +50* main_bar_provided / 100, 2 * nominal_cover),(clear_span * 250 + 50*main_bar_provided / 100 + nominal_cover, 4 * nominal_cover))  # bottom right extra
-        msp.add_line((clear_span * 750 - main_bar_provided / 2, 2 * nominal_cover),(clear_span * 750 - main_bar_provided / 2 - nominal_cover, 4 * nominal_cover))#bottom left
+        msp.add_line((clear_span * 250 , 2 * nominal_cover),
+                     (clear_span * 750 , 2 * nominal_cover))  # bottom extra
+        msp.add_line((clear_span*250,2*nominal_cover),(clear_span*250-nominal_cover,4*nominal_cover))  # bottom right extra
+        msp.add_line((clear_span * 750 , 2 * nominal_cover),(clear_span * 750   + 2*nominal_cover, 4 * nominal_cover))#bottom left
         dim.render()
         file = "SimplySupported.dxf"
         doc.saveas(file)
@@ -4201,9 +4248,57 @@ def generate_dxf():
         x6 = clear_span * 1000 + 2 * wall_thickness / 4
         y6 = overall_depth / 1.2
 
+        # column beam ld-----------------------------------------------------------------------------------------------------------
+        msp.add_line((x, y - main_bar / 100),
+                     (x, .6 * overall_depth))  # top left
+        msp.add_line((x3, y3 + main_bar / 100), (x3, y4 + .4 * overall_depth))  # bottom left
+        msp.add_line((x1, y1 - main_bar / 100), (x1, .6 * overall_depth))  # top left
+        msp.add_line((x4, y4 + main_bar / 100), (x4, y4 + .4 * overall_depth))
+        # ------------------top left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # top -left-----------------
+        startleft_pointtl = (x + main_bar / 100, y)
+        endleft_pointtl = (x, y - main_bar / 100)
+        arctl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointtl,
+            end_point=endleft_pointtl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arctl.add_to_layout(msp, dxfattribs=attribs)
+        # ------------------bot left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # bot -left-----------------
+        startleft_pointbl = (x3, y3 + main_bar / 100)
+        endleft_pointbl = (x3 + main_bar / 100, y3)
+        arcbl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointbl,
+            end_point=endleft_pointbl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arcbl.add_to_layout(msp, dxfattribs=attribs)
+        # top -right-----------------
+        startleft_pointtl = (x1, y - main_bar / 100)
+        endleft_pointtl = (x1 - main_bar / 100, y)
+        arctl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointtl,
+            end_point=endleft_pointtl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arctl.add_to_layout(msp, dxfattribs=attribs)
+        # ------------------bot left join fillet
+        attribs = {'layer': '0', 'color': 7}
+        # bot -right-----------------
+        startleft_pointbl = (x4 - main_bar / 100, y3)
+        endleft_pointbl = (x4, y3 + main_bar / 100)
+        arcbl = ConstructionArc.from_2p_radius(
+            start_point=startleft_pointbl,
+            end_point=endleft_pointbl,
+            radius=main_bar / 100 + main_bar / 400  # left fillet
+        )
+        arcbl.add_to_layout(msp, dxfattribs=attribs)
         # Create a Line
-        msp.add_line((x, y), (x1, y1))  # top bar
-        msp.add_line((x3, y3), (x4, y4))  # bottom bar
+        msp.add_line((x + main_bar / 100, y), (x1 - main_bar / 100, y1))  # top bar
+        msp.add_line((x3 + main_bar / 100, y3), (x4 - main_bar / 100, y4))  # bottom bar
         msp.add_line((0, 0), (clear_span * 1000 + wall_thickness, 0))
         msp.add_line((0, 0), (-wall_thickness, 0))
         msp.add_line((-wall_thickness, 0), (-wall_thickness, overall_depth))
@@ -4726,7 +4821,7 @@ def generate_dxf():
         else:
             print("bars cannot be arranged")
         text_string = "SECTION C-C"
-        insert_point = (1000 * clear_span, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
+        insert_point = (1000 * clear_span-wall_thickness, -7 * overall_depth)  # X, Y coordinates where the text will be inserted.
         text_height = 1
         # Add text to the modelspace.
         msp.add_text(
@@ -5181,11 +5276,11 @@ def generate_dxf():
                 else:
                     print("bars cannot be arranged")
                     #----------------------------------------extra rods
-        xe = -wall_thickness + nominal_cover
+        xe = -wall_thickness + nominal_cover+wall_thickness/2
         ye = overall_depth - nominal_cover * 2
         x1e = clear_span * 200+50*top_bar_provided/100
         y1e = overall_depth - nominal_cover * 2
-        x3e = clear_span*1000+wall_thickness-nominal_cover
+        x3e = clear_span*1000+wall_thickness-nominal_cover-wall_thickness/2
 
         y3e = o_d/100-nominal_cover*2
         x4e = clear_span * 800-50*top_bar_provided/100
@@ -5196,13 +5291,14 @@ def generate_dxf():
         msp.add_line((x1e, o_d/100-nominal_cover*2),(x1e+nominal_cover,o_d/100-nominal_cover*4))
         msp.add_line((x3e, y3e), (x4e, y4e))#top left
         msp.add_line((x4e-nominal_cover,o_d/100 -nominal_cover*4),(x4e,y4e))
-        msp.add_line((clear_span*250+50*main_bar_provided/100,2*nominal_cover),(clear_span*750-50*main_bar_provided/100,2*nominal_cover))#bottom extra
-        msp.add_line((clear_span * 250 +  main_bar_provided/2, 2 * nominal_cover),
-                     (clear_span * 250 +  main_bar_provided/2-nominal_cover, 4*nominal_cover))  # bottom extra
-        msp.add_line((clear_span * 750 - main_bar_provided / 2, 2 * nominal_cover),
-                     (clear_span * 750 - main_bar_provided / 2 + nominal_cover, 4 * nominal_cover))
+        msp.add_line((clear_span*250,2*nominal_cover),(clear_span*750,2*nominal_cover))#bottom extra
+        msp.add_line((clear_span * 250 , 2 * nominal_cover),
+                     (clear_span * 250 -nominal_cover, 4*nominal_cover))  # bottom extra
+        msp.add_line((clear_span * 750, 2 * nominal_cover),
+                     (clear_span * 750  + nominal_cover, 4 * nominal_cover))
         #------------------------------------------------------------extra rod
-
+    #column beam ld-----------------------------------------------------------------------------------------------------------
+        msp.add_line((-wall_thickness + nominal_cover / 100,overall_depth - nominal_cover ),(-wall_thickness + nominal_cover / 100,overall_depth*.25 - nominal_cover ))
 
         dim.render()
         file = "Fixed.dxf"
