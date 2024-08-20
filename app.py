@@ -58,6 +58,7 @@ def generate_dxf():
         print("revised Effective Length: ", revised_effective_length, "mm")
         # -----------------------Step-2---------------------------------------------
         self_weight = provided_depth * wall_thickness * 25 / (10 ** 6)
+        udl=udl+self_weight
 
         def get_point_loads():
             point_loads = []
