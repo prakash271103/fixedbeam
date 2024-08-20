@@ -270,7 +270,7 @@ def generate_dxf():
 
             print("percentage of steel provided(Compression Reinforcement): ", pt)
             #side-face
-            if provided_depth > 750:
+            if provided_depth >= 750:
                 sideast = 0.0005 * wall_thickness * provided_depth
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -1002,7 +1002,7 @@ def generate_dxf():
                 create_dots_cc(dot_centers1, dot_radius1, bottom)
             else:
                 print("bars cannot be arranged")
-            if provided_depth > 750:
+            if provided_depth >= 750:
                 sideast = 0.0005 * wall_thickness *  provided_depth
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -1468,7 +1468,7 @@ def generate_dxf():
 
                 print("percentage of steel provided(Compression Reinforcement): ", pt)
             #side face
-            if provided_depth > 750:
+            if provided_depth >= 750:
                 sideast = 0.0005 * wall_thickness *  provided_depth
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -2507,7 +2507,7 @@ def generate_dxf():
 
             print("Percentage of steel provided(Compression Reinforcement): ", pt)
             #Side-face Reinforcement
-            if o_d > 750:
+            if o_d >= 750:
                 sideast = 0.0005 * wall_thickness * o_d
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -2674,7 +2674,7 @@ def generate_dxf():
                 print("provide", no_of_bars_top, "-Φ", top_bar, " mm as main bars at the top")
                 print("percentage of steel provided(Compression Reinforcement): ", pt)
             #side face
-            if o_d > 750:
+            if o_d >= 750:
                 sideast = 0.0005 * wall_thickness * o_d
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -4103,7 +4103,7 @@ def generate_dxf():
 
             print("Percentage of steel provided(Compression Reinforcement): ", pt)
             #Side-face Reinforcement
-            if o_d > 750:
+            if o_d >= 750:
                 sideast = 0.0005 * wall_thickness * o_d
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
@@ -4270,7 +4270,7 @@ def generate_dxf():
                 print("provide", no_of_bars_top, "-Φ", top_bar, " mm as main bars at the top")
                 print("percentage of steel provided(Compression Reinforcement): ", pt)
             #side face
-            if o_d > 750:
+            if o_d >= 750:
                 sideast = 0.0005 * wall_thickness * o_d
                 side_bar = [12, 16, 20, 25, 32, 40]
                 results1 = []
